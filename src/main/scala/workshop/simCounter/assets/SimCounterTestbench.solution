@@ -1,0 +1,37 @@
+package workshop.simCounter
+
+import spinal.sim._
+import spinal.core._
+import spinal.core.sim._
+
+object SimCounterTestbench {
+  def main(args: Array[String]): Unit = {
+    //Compile the simulator
+    val compiled = SimConfig.withWave.compile(new SimCounterDut)
+
+    //Run the simulation
+    compiled.doSim{dut =>
+      //Fork a thread to generate the reset and the clock with a period of 10 units of time
+      dut.clockDomain.forkStimulus(10)
+
+      var counterModel = 0
+      for(_ <- 0 until 1000) {
+        //Randomize Dut inputs
+        dut.io.enable.randomize()
+
+        //Wait until the dut.clockDomain will make the counter register sample its input
+        dut.clockDomain.waitSampling()
+        //At this point of the simulation the clock edge append,
+        //but the Dut register outputs aren't updated yet (will be in one delta cycle)
+
+        //Check that the dut.io.value is matching the expected value.
+        assert(dut.io.value.toInt == counterModel, s"dut.io.value mismatch. io.value=${dut.io.value.toInt} counterModel=$counterModel")
+
+        //Update the counterModel
+        if (dut.io.enable.toBoolean) {
+          counterModel = (counterModel + 1) & 0xFF
+        }
+      }
+    }
+  }
+}
