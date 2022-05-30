@@ -37,7 +37,7 @@ case class AxiCfgReg(axi4: Axi4,axi4Config: Axi4Config) extends Bundle{
   // reset register with Read addr channel signal
   def regConfigAr() : Unit = {
     AxID := axi4.ar.payload.id
-    AxADDR := axi4.ar.payload.addr + (U"1" << AxSIZE)
+    AxADDR := axi4.ar.payload.addr
     AxLEN := axi4.ar.payload.len
     AxSIZE := axi4.ar.payload.size
     AxBURST := axi4.ar.payload.burst
@@ -232,12 +232,15 @@ case class axi_slave(axi4Config: Axi4Config) extends Component{
 
       when(io.axi_in.w.valid){
         axiCfgReg.in_burst_trans := True
-//        axi_slave.write()
-//        write()
         mem1.write(
           address = axiCfgReg.AxADDR(0,12 bits) ,
           data = io.axi_in.w.payload.data,
-          enable = io.axi_in.w.valid
+          enable = (axiCfgReg.AxADDR(12,20 bits)===0) && io.axi_in.w.fire
+        )
+        mem2.write(
+          address = axiCfgReg.AxADDR(0,12 bits) ,
+          data = io.axi_in.w.payload.data,
+          enable = (axiCfgReg.AxADDR(12,20 bits)===1) && io.axi_in.w.fire
         )
         io.axi_in.w.ready := True
       }
@@ -276,9 +279,8 @@ case class axi_slave(axi4Config: Axi4Config) extends Component{
       io.axi_in.ar.ready := True
 
       when(io.axi_in.ar.fire){
-//        axiCfgReg.in_burst_trans := True
-        io.axi_in.r.payload.data := mem1.readSync(address = axiCfgReg.AxADDR(0,12 bits),enable = io.axi_in.r.valid)
-        io.axi_in.r.valid := True
+
+//        io.axi_in.r.payload.data := mem1.readSync(address = axiCfgReg.AxADDR(0,12 bits),enable = (axiCfgReg.AxADDR(12,20 bits)===0) && io.axi_in.r.valid)
         goto(R_DATA)
       }
     }
@@ -286,9 +288,10 @@ case class axi_slave(axi4Config: Axi4Config) extends Component{
     R_DATA.whenIsActive{
       io.axi_in.ar.ready := False
 
-//      axi_slave.read()
-//      read()
-      io.axi_in.r.payload.data := mem1.readSync(address = axiCfgReg.AxADDR(0,12 bits),enable = io.axi_in.r.valid)
+
+      io.axi_in.r.payload.data := mem1.readAsync(address = axiCfgReg.AxADDR(0,12 bits))//,enable = (axiCfgReg.AxADDR(12,20 bits)===0) && io.axi_in.r.valid )
+//      io.axi_in.r.payload.data := mem2.readSync(address = axiCfgReg.AxADDR(0,12 bits),enable = (axiCfgReg.AxADDR(12,20 bits)===1))
+
       io.axi_in.r.payload.id := axiCfgReg.AxID
       io.axi_in.r.payload.user := user
       io.axi_in.r.payload.resp := Axi4.resp.OKAY

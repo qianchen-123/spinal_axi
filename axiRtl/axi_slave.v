@@ -1,6 +1,6 @@
 // Generator : SpinalHDL v1.7.0a    git head : 150a9b9067020722818dfb17df4a23ac712a7af8
 // Component : axi_slave
-// Git hash  : 3a903e741cbbe310a98c75dc1ebbd289cb1c87a4
+// Git hash  : f59628aec417af6d409b3dceb1a2990394518af2
 
 `timescale 1ns/1ps
 
@@ -57,18 +57,16 @@ module axi_slave (
   localparam fsm_enumDef_R_ADDR = 3'd5;
   localparam fsm_enumDef_R_DATA = 3'd6;
 
-  reg        [31:0]   _zz_mem1_port1;
-  reg        [31:0]   _zz_mem1_port2;
+  wire       [31:0]   _zz_mem1_port1;
   wire       [31:0]   _zz_axiCfgReg_AxADDR;
   wire       [7:0]    _zz_axiCfgReg_AxADDR_1;
   wire       [31:0]   _zz_axiCfgReg_AxADDR_2;
   wire       [7:0]    _zz_axiCfgReg_AxADDR_3;
   wire       [7:0]    _zz_axiCfgReg_full;
-  wire       [7:0]    _zz_axiCfgReg_almostFull;
-  wire       [7:0]    _zz_axiCfgReg_almostFull_1;
   wire       [11:0]   _zz_mem1_port;
-  wire       [31:0]   _zz_axiCfgReg_AxADDR_4;
-  wire       [7:0]    _zz_axiCfgReg_AxADDR_5;
+  wire                _zz_mem1_port_1;
+  wire       [11:0]   _zz_mem2_port;
+  wire                _zz_mem2_port_1;
   wire       [3:0]    user;
   reg        [3:0]    axiCfgReg_AxID;
   reg        [31:0]   axiCfgReg_AxADDR;
@@ -79,7 +77,6 @@ module axi_slave (
   reg                 axiCfgReg_begin;
   reg                 axiCfgReg_in_burst_trans;
   reg                 axiCfgReg_full;
-  wire                axiCfgReg_almostFull;
   wire                when_axi_slave_l64;
   wire                fsm_wantExit;
   reg                 fsm_wantStart;
@@ -88,17 +85,18 @@ module axi_slave (
   reg        [2:0]    fsm_stateNext;
   wire                io_axi_in_aw_fire;
   wire                io_axi_in_w_fire;
+  wire                io_axi_in_w_fire_1;
+  wire                io_axi_in_w_fire_2;
   wire                io_axi_in_b_fire;
   wire                io_axi_in_ar_fire;
   wire       [11:0]   _zz_io_axi_in_r_payload_data;
-  wire       [11:0]   _zz_io_axi_in_r_payload_data_1;
   wire                io_axi_in_r_fire;
   `ifndef SYNTHESIS
   reg [47:0] fsm_stateReg_string;
   reg [47:0] fsm_stateNext_string;
   `endif
 
-  reg [31:0] mem1 [0:4095];
+  (* ram_style = "distributed" *) reg [31:0] mem1 [0:4095];
   reg [31:0] mem2 [0:4095];
 
   assign _zz_axiCfgReg_AxADDR_1 = ({7'd0,1'b1} <<< axiCfgReg_AxSIZE);
@@ -106,26 +104,20 @@ module axi_slave (
   assign _zz_axiCfgReg_AxADDR_3 = ({7'd0,1'b1} <<< axiCfgReg_AxSIZE);
   assign _zz_axiCfgReg_AxADDR_2 = {24'd0, _zz_axiCfgReg_AxADDR_3};
   assign _zz_axiCfgReg_full = {4'd0, axiCfgReg_counter};
-  assign _zz_axiCfgReg_almostFull = {4'd0, axiCfgReg_counter};
-  assign _zz_axiCfgReg_almostFull_1 = (axiCfgReg_AxLEN - 8'h01);
-  assign _zz_axiCfgReg_AxADDR_5 = ({7'd0,1'b1} <<< axiCfgReg_AxSIZE);
-  assign _zz_axiCfgReg_AxADDR_4 = {24'd0, _zz_axiCfgReg_AxADDR_5};
   assign _zz_mem1_port = axiCfgReg_AxADDR[11 : 0];
+  assign _zz_mem1_port_1 = ((axiCfgReg_AxADDR[31 : 12] == 20'h0) && io_axi_in_w_fire);
+  assign _zz_mem2_port = axiCfgReg_AxADDR[11 : 0];
+  assign _zz_mem2_port_1 = ((axiCfgReg_AxADDR[31 : 12] == 20'h00001) && io_axi_in_w_fire_1);
   always @(posedge clk) begin
-    if(io_axi_in_w_valid) begin
+    if(_zz_mem1_port_1) begin
       mem1[_zz_mem1_port] <= io_axi_in_w_payload_data;
     end
   end
 
+  assign _zz_mem1_port1 = mem1[_zz_io_axi_in_r_payload_data];
   always @(posedge clk) begin
-    if(io_axi_in_r_valid) begin
-      _zz_mem1_port1 <= mem1[_zz_io_axi_in_r_payload_data];
-    end
-  end
-
-  always @(posedge clk) begin
-    if(io_axi_in_r_valid) begin
-      _zz_mem1_port2 <= mem1[_zz_io_axi_in_r_payload_data_1];
+    if(_zz_mem2_port_1) begin
+      mem2[_zz_mem2_port] <= io_axi_in_w_payload_data;
     end
   end
 
@@ -170,7 +162,7 @@ module axi_slave (
         if(io_axi_in_w_valid) begin
           axiCfgReg_in_burst_trans = 1'b1;
         end
-        if(io_axi_in_w_fire) begin
+        if(io_axi_in_w_fire_2) begin
           if(axiCfgReg_full) begin
             axiCfgReg_in_burst_trans = 1'b0;
           end
@@ -223,7 +215,6 @@ module axi_slave (
     endcase
   end
 
-  assign axiCfgReg_almostFull = (_zz_axiCfgReg_almostFull == _zz_axiCfgReg_almostFull_1);
   always @(*) begin
     io_axi_in_aw_ready = 1'b0;
     case(fsm_stateReg)
@@ -391,9 +382,6 @@ module axi_slave (
       fsm_enumDef_W_RSP : begin
       end
       fsm_enumDef_R_ADDR : begin
-        if(io_axi_in_ar_fire) begin
-          io_axi_in_r_valid = 1'b1;
-        end
       end
       fsm_enumDef_R_DATA : begin
         io_axi_in_r_valid = 1'b1;
@@ -415,12 +403,9 @@ module axi_slave (
       fsm_enumDef_W_RSP : begin
       end
       fsm_enumDef_R_ADDR : begin
-        if(io_axi_in_ar_fire) begin
-          io_axi_in_r_payload_data = _zz_mem1_port1;
-        end
       end
       fsm_enumDef_R_DATA : begin
-        io_axi_in_r_payload_data = _zz_mem1_port2;
+        io_axi_in_r_payload_data = _zz_mem1_port1;
       end
       default : begin
       end
@@ -559,7 +544,7 @@ module axi_slave (
         end
       end
       fsm_enumDef_W_DATA : begin
-        if(io_axi_in_w_fire) begin
+        if(io_axi_in_w_fire_2) begin
           if(axiCfgReg_full) begin
             fsm_stateNext = fsm_enumDef_W_RSP;
           end else begin
@@ -603,10 +588,11 @@ module axi_slave (
 
   assign io_axi_in_aw_fire = (io_axi_in_aw_valid && io_axi_in_aw_ready);
   assign io_axi_in_w_fire = (io_axi_in_w_valid && io_axi_in_w_ready);
+  assign io_axi_in_w_fire_1 = (io_axi_in_w_valid && io_axi_in_w_ready);
+  assign io_axi_in_w_fire_2 = (io_axi_in_w_valid && io_axi_in_w_ready);
   assign io_axi_in_b_fire = (io_axi_in_b_valid && io_axi_in_b_ready);
   assign io_axi_in_ar_fire = (io_axi_in_ar_valid && io_axi_in_ar_ready);
   assign _zz_io_axi_in_r_payload_data = axiCfgReg_AxADDR[11 : 0];
-  assign _zz_io_axi_in_r_payload_data_1 = axiCfgReg_AxADDR[11 : 0];
   assign io_axi_in_r_fire = (io_axi_in_r_valid && io_axi_in_r_ready);
   always @(posedge clk or posedge reset) begin
     if(reset) begin
@@ -663,7 +649,7 @@ module axi_slave (
         end
         fsm_enumDef_R_ADDR : begin
           axiCfgReg_AxID <= io_axi_in_ar_payload_id;
-          axiCfgReg_AxADDR <= (io_axi_in_ar_payload_addr + _zz_axiCfgReg_AxADDR_4);
+          axiCfgReg_AxADDR <= io_axi_in_ar_payload_addr;
           axiCfgReg_AxLEN <= io_axi_in_ar_payload_len;
           axiCfgReg_AxSIZE <= io_axi_in_ar_payload_size;
           axiCfgReg_AxBURST <= io_axi_in_ar_payload_burst;
