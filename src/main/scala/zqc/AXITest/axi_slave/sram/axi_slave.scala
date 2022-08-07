@@ -285,6 +285,7 @@ case class axi_slave(axi4Config: Axi4Config) extends Component{
       }
     }
 
+
     R_DATA.whenIsActive{
       io.axi_in.ar.ready := False
 
