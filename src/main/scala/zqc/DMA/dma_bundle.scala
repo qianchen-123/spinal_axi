@@ -4,31 +4,108 @@ import spinal.core._
 import spinal.lib._
 import spinal.lib.bus.amba3.apb.{Apb3, Apb3Config}
 
-case class dmaLinkedListBundleConfig(
-                                      //--- cmd link list regs
-                                      llr_Width : Int = 32,
-                                      ll_rdata_Width : Int = 32,
-                                      ll_dcnt_Width : Int = 3
-                                    ){
+//-------------------------------------------------------------------------------------------------------
+case class dma_cfg_bundle_Config (
+                                   //---cfg regs
+                                   sar_Width : Int = 32,
+                                   dar_Width : Int = 32,
+                                   trans_xsize_Width : Int = 16,
+                                   trans_ysize_Width : Int = 16,
+                                   sa_ystep_Width : Int = 16,
+                                   da_ystep_Width : Int = 16,
+                                   llr_Width : Int = 32,
+                                   user_id : Int = 1
+                                 )
+case class dma_cfg_bundle(config : dma_cfg_bundle_Config) extends Bundle with IMasterSlave{
+  val dma_cfg_id = 1
+  val rcmd_gen_id = 2
+  val wcmd_gen_id = 3
+  val dma_2_axi_id = 4
+  //--- cfg regs
+  val sar = if(config.user_id == dma_cfg_id | config.user_id == rcmd_gen_id) UInt(config.sar_Width bits) else null
+  val dar = if(config.user_id == dma_cfg_id | config.user_id == wcmd_gen_id) UInt(config.dar_Width bits) else null
+  val trans_xsize = if(config.user_id == dma_cfg_id | config.user_id == rcmd_gen_id | config.user_id == wcmd_gen_id) UInt(config.trans_xsize_Width bits) else null
+  val trans_ysize = if(config.user_id == dma_cfg_id | config.user_id == rcmd_gen_id | config.user_id == wcmd_gen_id) UInt(config.trans_ysize_Width bits) else null
+  val sa_ystep = if(config.user_id == dma_cfg_id | config.user_id == rcmd_gen_id) UInt(config.sa_ystep_Width bits) else null
+  val da_ystep = if(config.user_id == dma_cfg_id | config.user_id == wcmd_gen_id) UInt(config.da_ystep_Width bits) else null
+  val llr = if(config.user_id == dma_cfg_id) UInt(config.llr_Width bits) else null
+  val dma_halt = if(config.user_id == dma_cfg_id | config.user_id == dma_2_axi_id) Bool() else null
+  val bf = if(config.user_id == dma_cfg_id | config.user_id == dma_2_axi_id) Bool() else null
+  val cf = if(config.user_id == dma_cfg_id | config.user_id == dma_2_axi_id) Bool() else null
 
+  val buf_err = if(config.user_id == dma_cfg_id | config.user_id == dma_2_axi_id) Bool() else null
+  val clr_bur_err = if(config.user_id == dma_cfg_id | config.user_id == dma_2_axi_id) Bool() else null
+  override def asMaster(): Unit = {
+    //--- cfg regs
+    if(config.user_id == dma_cfg_id | config.user_id == rcmd_gen_id) out(sar)
+    if(config.user_id == dma_cfg_id | config.user_id == wcmd_gen_id) out(dar)
+    if(config.user_id == dma_cfg_id | config.user_id == rcmd_gen_id | config.user_id == wcmd_gen_id) out(trans_xsize)
+    if(config.user_id == dma_cfg_id | config.user_id == rcmd_gen_id | config.user_id == wcmd_gen_id) out(trans_ysize)
+    if(config.user_id == dma_cfg_id | config.user_id == rcmd_gen_id) out(sa_ystep)
+    if(config.user_id == dma_cfg_id | config.user_id == wcmd_gen_id) out(da_ystep)
+    if(config.user_id == dma_cfg_id) out(llr)
+    if(config.user_id == dma_cfg_id | config.user_id == dma_2_axi_id) out(dma_halt)
+    if(config.user_id == dma_cfg_id | config.user_id == dma_2_axi_id) out(bf)
+    if(config.user_id == dma_cfg_id | config.user_id == dma_2_axi_id) out(cf)
+
+    if(config.user_id == dma_cfg_id | config.user_id == dma_2_axi_id) in(buf_err)
+    if(config.user_id == dma_cfg_id | config.user_id == dma_2_axi_id) out(clr_bur_err)
+  }
 }
 
-case class cmd_linked_list_bundle(config : dmaLinkedListBundleConfig) extends Bundle with IMasterSlave{
+//-------------------------------------------------------------------------------------------------------
+
+
+case class dma_ll_bundle_Config(
+                                 //--- cmd link list regs
+                                 llr_Width : Int = 32,
+                                 ll_rdata_Width : Int = 32,
+                                 ll_dcnt_Width : Int = 3
+                               )
+
+case class dma_ll_bundle(config : dma_ll_bundle_Config) extends Bundle with IMasterSlave{
 
   //--- cmd linked list req and ack
-  val ll_req = Bool()
-  val ll_addr = UInt(config.llr_Width bits)
-  val ll_ack = Bool()
-  val ll_dvld = Bool()
-  val ll_rdata = Bits(config.ll_rdata_Width bits) // Bits
-  val ll_dcnt = UInt(config.ll_dcnt_Width bits)
+  val req = Bool()
+  val addr = UInt(config.llr_Width bits)
+  val ack = Bool()
+  val dvld = Bool()
+  val rdata = Bits(config.ll_rdata_Width bits) // Bits
+  val dcnt = UInt(config.ll_dcnt_Width bits)
 
   override def asMaster(): Unit ={
     //--- cmd linked list
-    out(ll_req,ll_addr)
-    in(ll_ack,ll_dvld,ll_rdata,ll_dcnt)
+    out(req,addr)
+    in(ack,dvld,rdata,dcnt)
   }
+}
 
+//-------------------------------------------------------------------------------------------------------
+
+case class dma_status_bundle_Config(
+                                     cmd_num_Width : Int = 8,
+                                     user_id : Int = 1
+                                   )
+
+case class dma_status_bundle(config : dma_status_bundle_Config) extends Bundle with IMasterSlave{
+  val dma_cfg_id = 1
+  val rcmd_gen_id = 2
+  val wcmd_gen_id = 3
+  val dma_2_axi_id = 4
+  //--- dma status
+  val cmd_sof = if(config.user_id == dma_cfg_id | config.user_id == rcmd_gen_id | config.user_id == wcmd_gen_id | config.user_id == dma_2_axi_id) Bool() else null
+  val cmd_end = if(config.user_id == dma_cfg_id | config.user_id == wcmd_gen_id) Bool() else null
+  val cmd_num = if(config.user_id == dma_cfg_id) UInt(config.cmd_num_Width bits) else null
+  val busy = if(config.user_id == dma_cfg_id | config.user_id == wcmd_gen_id | config.user_id == dma_2_axi_id) Bool() else null
+  val intr = if(config.user_id == dma_cfg_id) Bool() else null
+  override def asMaster(): Unit ={
+    //--- dma status
+    if(config.user_id == dma_cfg_id | config.user_id == rcmd_gen_id | config.user_id == wcmd_gen_id | config.user_id == dma_2_axi_id) out(cmd_sof)
+    if(config.user_id == dma_cfg_id | config.user_id == wcmd_gen_id) in(cmd_end)
+    if(config.user_id == dma_cfg_id) out(cmd_num)
+    if(config.user_id == dma_cfg_id | config.user_id == wcmd_gen_id | config.user_id == dma_2_axi_id) out(busy)
+    if(config.user_id == dma_cfg_id) out(intr)
+  }
 }
 
 //---------------------------------------------------------------
@@ -55,49 +132,50 @@ case class dmaInfBundleConfig(
 case class DMA_inf_bundle (config : dmaInfBundleConfig) extends Bundle with IMasterSlave{
 
   //--- DMA read inf
-  val dma_r_req = if(config.read_model) Bool() else null
-  val dma_r_ack = if(config.read_model) Bool() else null
-  val dma_r_addr = if(config.read_model) UInt(config.dma_r_addr_Width bits) else null
-  val dma_r_len = if(config.read_model) UInt(config.dma_r_len_Width bits) else null
+  val r_req = if(config.read_model) Bool() else null
+  val r_ack = if(config.read_model) Bool() else null
+  val r_addr = if(config.read_model) UInt(config.dma_r_addr_Width bits) else null
+  val r_len = if(config.read_model) UInt(config.dma_r_len_Width bits) else null
 
-  val dma_dvld = if(config.read_model) Bool() else null
-  val dma_rd_last = if(config.read_model) Bool() else null
-  val dma_rdata = if(config.read_model) Bits(config.dma_rdata_Width bits) else null
-  val dma_rbe = if(config.read_model) UInt(config.dma_rbe_Width bits) else null
-  val dma_dack =if(config.read_model) Bool() else null
+  val dvld = if(config.read_model) Bool() else null
+  val rd_last = if(config.read_model) Bool() else null
+  val rdata = if(config.read_model) Bits(config.dma_rdata_Width bits) else null
+  val rbe = if(config.read_model) UInt(config.dma_rbe_Width bits) else null
+  val dack =if(config.read_model) Bool() else null
 
   ///--- DMA write inf
-  val dma_w_req = if(!config.read_model) Bool() else null
-  val dma_w_ack = if(!config.read_model) Bool() else null
-  val dma_w_addr = if(!config.read_model) UInt(config.dma_w_addr_Width bits) else null
-  val dma_w_len = if(!config.read_model) UInt(config.dma_w_len_Width bits) else null
+  val w_req = if(!config.read_model) Bool() else null
+  val w_ack = if(!config.read_model) Bool() else null
+  val w_addr = if(!config.read_model) UInt(config.dma_w_addr_Width bits) else null
+  val w_len = if(!config.read_model) UInt(config.dma_w_len_Width bits) else null
 
-  val dma_w_dvld = if(!config.read_model) Bool() else null
-  val dma_wdata = if(!config.read_model) Bits(config.dma_wdata_Width bits) else null
-  val dma_wbe = if(!config.read_model) UInt(config.dma_wbe_Width bits) else null
-  val dma_w_dack = if(!config.read_model) Bool() else null
+  val w_dvld = if(!config.read_model) Bool() else null
+  val wdata = if(!config.read_model) Bits(config.dma_wdata_Width bits) else null
+  val wbe = if(!config.read_model) UInt(config.dma_wbe_Width bits) else null
+  val w_dack = if(!config.read_model) Bool() else null
 
 
   override def asMaster(): Unit ={
     //--- DMA read inf
-    if(config.read_model) out(dma_r_req)
-    if(config.read_model) in(dma_r_ack)
-    if(config.read_model) out(dma_r_addr,dma_r_len)
+    if(config.read_model) out(r_req)
+    if(config.read_model) in(r_ack)
+    if(config.read_model) out(r_addr,r_len)
 
-    if(config.read_model) in(dma_dvld,dma_rd_last,dma_rdata,dma_rbe)
-    if(config.read_model) out(dma_dack)
+    if(config.read_model) in(dvld,rd_last,rdata,rbe)
+    if(config.read_model) out(dack)
 
     //--- DMA write inf
-    if(!config.read_model) out(dma_w_req)
-    if(!config.read_model) in(dma_w_ack)
-    if(!config.read_model) out(dma_w_addr,dma_w_len)
+    if(!config.read_model) out(w_req)
+    if(!config.read_model) in(w_ack)
+    if(!config.read_model) out(w_addr,w_len)
 
-    if(!config.read_model) out(dma_w_dvld,dma_wdata,dma_wbe)
-    if(!config.read_model) in(dma_w_dack)
+    if(!config.read_model) out(w_dvld,wdata,wbe)
+    if(!config.read_model) in(w_dack)
 
   }
 
 }
+
 
 
 //---------------------------------------------------------------
@@ -144,90 +222,5 @@ case class buffer_bundle(config : bufferBundleConfig) extends Bundle with  IMast
 }
 
 
-//---------------------------------------------------------------
 
 
-case class dmaBundleConfig(
-
-                            //---cfg regs
-                            sar_Width : Int = 32,
-                            dar_Width : Int = 32,
-                            trans_xsize_Width : Int = 16,
-                            trans_ysize_Width : Int = 16,
-                            sa_ystep_Width : Int = 16,
-                            da_ystep_Width : Int = 16,
-
-                            //--- cmd link list regs
-                            llr_Width : Int = 32,
-                            ll_rdata_Width : Int = 32,
-                            ll_dcnt_Width : Int = 3,
-
-                            cmd_num_Width : Int = 8
-                          ){
-
-}
-
-case class dma_bundle(val config : dmaBundleConfig, apb3Config: Apb3Config) extends Bundle with IMasterSlave{
-
-  //--- APB configure inf
-  val dma_apb = Apb3(apb3Config)
-
-  //--- cfg regs
-  val sar = UInt(config.sar_Width bits)
-  val dar = UInt(config.dar_Width bits)
-  val trans_xsize = UInt(config.trans_xsize_Width bits)
-  val trans_ysize = UInt(config.trans_ysize_Width bits)
-  val sa_ystep = UInt(config.sa_ystep_Width bits)
-  val da_ystep = UInt(config.da_ystep_Width bits)
-  val llr = UInt(config.llr_Width bits)
-  val dma_halt = Bool()
-  val bf = Bool()
-  val cf = Bool()
-
-  val buf_err = Bool()
-  val clr_bur_err = Bool()
-
-  //--- cmd linked list req and ack
-  val ll_req = Bool()
-  val ll_addr = UInt(config.llr_Width bits)
-  val ll_ack = Bool()
-  val ll_dvld = Bool()
-  val ll_rdata = Bits(config.ll_rdata_Width bits) // Bits
-  val ll_dcnt = UInt(config.ll_dcnt_Width bits)
-
-  //--- dma status
-  val dma_cmd_sof = Bool()
-  val dma_cmd_end = Bool()
-  val cmd_num = UInt(config.cmd_num_Width bits)
-  val dma_busy = Bool()
-  val intr = Bool()
-
-  //--- basic signal
-  val clk = Bool()
-  val rstn = Bool()
-
-  override def asMaster(): Unit = {
-
-    //--- apb
-    slave(dma_apb)
-
-    //--- cfg regs
-    out(sar,dar,trans_xsize,trans_ysize,sa_ystep,da_ystep,llr)
-    out(dma_halt,bf,cf)
-
-    in(buf_err)
-    out(clr_bur_err)
-
-    //--- cmd linked list
-    out(ll_req,ll_addr)
-    in(ll_ack,ll_dvld,ll_rdata,ll_dcnt)
-
-    //--- dma status
-    out(dma_cmd_sof)
-    in(dma_cmd_end)
-    out(cmd_num,dma_busy,intr)
-
-    //---basic signal
-    in(clk,rstn)
-  }
-}

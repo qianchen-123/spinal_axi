@@ -7,10 +7,26 @@ import spinal.lib._
 // Define a Ram as a BlackBox
 case class Ram_1w_1r_2c(wordWidth: Int, addressWidth: Int,writeClock : ClockDomain,readClock : ClockDomain) extends BlackBox {
   // TODO define Generics
-
+  addGeneric("addressWidth", addressWidth)
+  addGeneric("wordWidth", wordWidth)
   // TODO define IO
-
+  val io = new Bundle {
+    val wr = new Bundle {
+      val clk  = in Bool()
+      val en   = in Bool()
+      val addr = in UInt(addressWidth bits)
+      val data = in Bits(wordWidth bits)
+    }
+    val rd = new Bundle {
+      val clk  = in Bool()
+      val en   = in Bool()
+      val addr = in UInt(addressWidth bits)
+      val data = out Bits(wordWidth bits)
+    }
+  }
   // TODO define ClockDomains mappings
+  mapClockDomain(clockDomain = writeClock, clock=io.wr.clk)
+  mapClockDomain(clockDomain = readClock , clock=io.rd.clk)
 }
 
 // Create the top level and instanciate the Ram
