@@ -64,6 +64,20 @@ case class xdma(axi_cfg : Axi4Config) extends BlackBox{
 
   noIoPrefix()
 
+  private  def renameIO(): Unit = {
+    io.flatten.foreach(bt =>{
+      if(bt.getName().contains("payload_")) bt.setName(bt.getName().replace("payload_",""))
+      if(bt.getName().contains("m_axi_ar_")) bt.setName(bt.getName().replace("m_axi_ar_","m_axi_ar"))
+      if(bt.getName().contains("m_axi_r_")) bt.setName(bt.getName().replace("m_axi_r_","m_axi_r"))
+      if(bt.getName().contains("m_axi_aw_")) bt.setName(bt.getName().replace("m_axi_aw_","m_axi_aw"))
+      if(bt.getName().contains("m_axi_w_")) bt.setName(bt.getName().replace("m_axi_w_","m_axi_w"))
+      if(bt.getName().contains("m_axi_b_")) bt.setName(bt.getName().replace("m_axi_b_","m_axi_b"))
+
+    })
+  }
+
+  addPrePopTask(() => renameIO())
+
   // TODO define ClockDomains mappings
 //  mapClockDomain(clock = io.sys_clk,reset = io.sys_rst_n,resetActiveLevel = LOW)
 //  mapClockDomain(clock = io.sys_clk_gt,reset = io.sys_rst_n,resetActiveLevel = LOW)
