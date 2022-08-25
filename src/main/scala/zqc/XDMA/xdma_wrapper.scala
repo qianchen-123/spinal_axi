@@ -15,7 +15,7 @@ case class xdma_wrapper(axi4Config: Axi4Config) extends Component{
 
     val user_lnk_up = out Bool()
 
-    val pci_exp = master(pcie_mgt_bundle())
+    val pci_exp = slave(pcie_mgt_bundle())
 
     val axi_aclk = out Bool()
     val axi_aresetn = out Bool()
@@ -31,11 +31,11 @@ case class xdma_wrapper(axi4Config: Axi4Config) extends Component{
 
   val xdma_0 = new xdma(axi4Config)
   io.cfg_mgmt <> xdma_0.io.cfg_mgmt
-  io.sys_clk <> xdma_0.io.sys_clk
-  io.sys_clk_gt <> xdma_0.io.sys_clk_gt
-  io.sys_rst_n <> xdma_0.io.sys_rst_n
+  io.sys_clk <> xdma_0.io.pcie_refclk_clk_n
+  io.sys_clk_gt <> xdma_0.io.pcie_refclk_clk_p
+  io.sys_rst_n <> xdma_0.io.pcie_perstn
   io.user_lnk_up <> xdma_0.io.user_lnk_up
-  io.pci_exp <> xdma_0.io.pci_exp
+  io.pci_exp <> xdma_0.io.pci_express_x4
   io.axi_aclk <> xdma_0.io.axi_aclk
   io.axi_aresetn <> xdma_0.io.axi_aresetn
   io.usr_irq_req <> xdma_0.io.usr_irq_req

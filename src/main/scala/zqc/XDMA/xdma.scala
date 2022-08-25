@@ -30,8 +30,8 @@ case class pcie_mgt_bundle() extends Bundle with IMasterSlave{
   val txn = Bits(4 bits)
   val txp = Bits(4 bits)
   override def asMaster(): Unit = {
-    in(rxn,rxp)
-    out(txn,txp)
+    out(rxn,rxp)
+    in(txn,txp)
   }
 }
 
@@ -41,13 +41,13 @@ case class xdma(axi_cfg : Axi4Config) extends BlackBox{
   val io = new Bundle{
     val cfg_mgmt = slave(pcie_mgt_bundle())
 
-    val sys_clk = in Bool()
-    val sys_clk_gt = in Bool()
-    val sys_rst_n = in Bool()
+    val pcie_refclk_clk_n = in Bool()
+    val pcie_refclk_clk_p = in Bool()
+    val pcie_perstn = in Bool()
 
     val user_lnk_up = out Bool()
 
-    val pci_exp = master(pcie_mgt_bundle())
+    val pci_express_x4 = slave(pcie_mgt_bundle())
 
     val axi_aclk = out Bool()
     val axi_aresetn = out Bool()
